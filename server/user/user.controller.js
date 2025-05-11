@@ -4,8 +4,9 @@ const userService = require('./user.service');
 
 // routes
 router.post('/authenticate', authenticate);
+router.get('/authenticate', authenticateGet);
 router.post('/register', register);
-router.get('/', getAll);
+router.get('/list', getAll);
 router.get('/current', getCurrent);
 router.get('/:id', getById);
 router.put('/:id', update);
@@ -13,10 +14,28 @@ router.delete('/:id', _delete);
 
 module.exports = router;
 
-function authenticate(req, res, next) {
-    userService.authenticate(req.body)
-        .then(user => user ? res.success(user) : res.status(400).json({ message: 'Username or password is incorrect' }))
-        .catch(err => next(err));
+async function authenticate(req, res, next) {
+    try {
+        const user = await userService.authenticate(req.body);
+        const { token } = user;
+        res.cookie('token', token, { httpOnly: true }); 
+        user ? res.success(user)  : res.status(400).json({ message: 'Username or password is incorrect' });
+    } catch(err) {
+        next(err);
+    }
+}
+
+
+// get 请求，测试使用
+async function authenticateGet(req, res, next) {
+    try {
+        const user = await userService.authenticate(req.query);
+        const { token } = user;
+        res.cookie('token', token, { httpOnly: true }); 
+        user ? res.success(user)  : res.status(400).json({ message: 'Username or password is incorrect' });
+    } catch(err) {
+        next(err);
+    }
 }
 
 function register(req, res, next) {
@@ -26,7 +45,7 @@ function register(req, res, next) {
 }
 
 function getAll(req, res, next) {
-    userService.getAll()
+    userService.getAll(req.query)
         .then(users => res.success(users))
         .catch(err => next(err));
 }

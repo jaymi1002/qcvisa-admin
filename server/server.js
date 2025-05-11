@@ -5,12 +5,14 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const jwt = require('_helpers/jwt');
 const errorHandler = require('_helpers/error-handler');
+const cookieToken = require('_helpers/cookie-token');
 const path = require('path');
+const cookieParser = require('cookie-parser');
+
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cors());
-
-
 
 // global error handler
 app.use(errorHandler);
@@ -32,13 +34,14 @@ app.use((req, res, next) => {
     next();
     
 });
+app.use(cookieToken);
 // use JWT auth to secure the api
-// app.use(jwt());
+app.use(jwt());
 
 
 // api routes
-app.use('/api/users', require('./users/users.controller'));
-app.use('/api/orders', require('./orders/orders.controller'));
+app.use('/api/user', require('./user/user.controller'));
+app.use('/api/order', require('./order/order.controller'));
 
 // global error handler
 app.use(errorHandler);

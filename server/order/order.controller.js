@@ -1,24 +1,24 @@
 ﻿const express = require('express');
 const router = express.Router();
-const orderService = require('./orders.service');
+const orderService = require('./order.service');
+const userService = require('../user/user.service');
 const moment = require('moment');
 
 router.post('/create', create);
 router.get('/list', getAll);
-router.get('/getNewOrderCode', getNewOrderCode);
 router.put('/:id', update);
 router.get('/:id', getByOrderCode);
+
+// 生成最新订单号
+router.get('/getNewOrderCode', getNewOrderCode);
+// 删除
 router.delete('/:id', _delete);
-
-
+// 跟进、完成
+router.post('/updateStatus/:id', updateStatus);
+// 转让
+router.post('/updateRecipient/:id', updateRecipient);
 
 module.exports = router;
-
-// function authenticate(req, res, next) {
-//     userService.authenticate(req.body)
-//         .then(user => user ? res.json(user) : res.status(400).json({ message: 'Username or password is incorrect' }))
-//         .catch(err => next(err));
-// }
 
 async function genNewOrderCode(params) {
     return await orderService.getCount().then(count => {
@@ -104,6 +104,38 @@ function _delete(req, res, next) {
         .catch(err => next(err));
 }
 
-function receive(req, res, next) {
+// 跟进、完成
+async function updateStatus(req, res, next) {
+    const user = await userService.getById(req.user.sub);
+    const { status, completeDate} = req.body;
+    const params = {
+        status
+    };
+    if(status === 'DOING') {
+        params.recipient = user.username;
+    }
 
+    if(status === 'DONE') {
+        params.completeDate = completeDate || Date.now;
+    }
+    orderService.update(req.params.id, params).then(() => res.success())
+    .catch(err => next(err));
+}
+
+// 转让
+async function updateRecipient(req, res, next) {
+    const { recipient} = req.body;
+    const order = await orderService.getByOrderCode(req.params.id)
+    const params = {
+        recipient
+    };
+
+    if(order.status !== 'DOING') {
+        res.fail(200, '非进行中的订单不能转让');
+        return;
+    }
+
+    params.recipient = user.username;
+    orderService.update(req.params.id, params).then(() => res.success())
+    .catch(err => next(err));
 }

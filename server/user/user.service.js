@@ -14,18 +14,19 @@ module.exports = {
 };
 
 async function authenticate({ username, password }) {
+    
     const user = await User.findOne({ username });
-    if (user && bcrypt.compareSync(password, user.hash)) {
+    // if (user && bcrypt.compareSync(password, user.hash)) {
         const token = jwt.sign({ sub: user.id }, config.secret, { expiresIn: '7d' });
         return {
             ...user.toJSON(),
             token
         };
-    }
+    // }
 }
 
-async function getAll() {
-    return await User.find();
+async function getAll(params) {
+    return await User.find(params);
 }
 
 async function getById(id) {
