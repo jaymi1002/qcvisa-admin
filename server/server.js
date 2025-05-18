@@ -35,9 +35,10 @@ app.use((req, res, next) => {
     
 });
 app.use(cookieToken);
+app.use(express.static('views'));
 // use JWT auth to secure the api
 app.use(jwt());
-app.use(express.static('views'));
+
 
 
 // api routes
