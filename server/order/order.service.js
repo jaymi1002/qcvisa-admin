@@ -9,7 +9,8 @@ module.exports = {
     create,
     update,
     getCount,
-    delete: _delete
+    delete: _delete,
+    getById
 };
 
 async function getAll(queryParams) {
@@ -22,6 +23,10 @@ async function getCount(queryParams) {
 
 async function getByOrderCode(orderCode) {
     return await Order.findOne({orderCode});
+}
+
+async function getById(id) {
+    return await Order.findById(id);
 }
 
 async function getByRecipient(recipient) {

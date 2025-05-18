@@ -3,12 +3,12 @@ module.exports = errorHandler;
 function errorHandler(err, req, res, next) {
     if (typeof (err) === 'string') {
         // custom application error
-        return res.fail(400, err);
+        return res.fail(200, err);
     }
 
     if (err.name === 'ValidationError') {
         // mongoose validation error
-        return res.fail(400, err.message);
+        return res.fail(200, err.message);
     }
 
     if (err.name === 'UnauthorizedError') {

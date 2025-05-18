@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const schema = new Schema({
     username: { type: String, unique: true, required: true },
     hash: { type: String, required: true },
-    type: { type: String, required: true, default: 'saler' }, // admin/saler/member
+    role: { type: String, required: true, default: 'saler' }, // admin/leader/saler/writer
     createdDate: { type: Date, default: Date.now }
 });
 

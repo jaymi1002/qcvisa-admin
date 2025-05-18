@@ -17,17 +17,17 @@ app.use(cors());
 // global error handler
 app.use(errorHandler);
 app.use((req, res, next) => {
-    res.success = (data, message = '成功') => {
+    res.success = (data, msg = '成功') => {
         res.status(200).json({
             code: 0,
-            message,
+            msg,
             data
         });
     }
-    res.fail = (code = 200, message = '成功', data = null) => {
+    res.fail = (code = 200, msg = '成功', data = null) => {
         res.status(code).json({
             code: 1,
-            message,
+            msg,
             data
         });
     }
@@ -37,6 +37,7 @@ app.use((req, res, next) => {
 app.use(cookieToken);
 // use JWT auth to secure the api
 app.use(jwt());
+app.use(express.static('views'));
 
 
 // api routes
@@ -51,7 +52,8 @@ app.get('/', (req, res) => {
 })
 
 // start server
-const port = process.env.NODE_ENV === 'production' ? (process.env.PORT || 80) : 4000;
+// const port = process.env.NODE_ENV === 'production' ? (process.env.PORT || 80) : 4000;
+const port = 80;
 const server = app.listen(port, function () {
     console.log('Server listening on port ' + port);
 });
