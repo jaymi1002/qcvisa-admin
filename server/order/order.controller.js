@@ -4,10 +4,12 @@ const orderService = require('./order.service');
 const userService = require('../user/user.service');
 const moment = require('moment');
 const db = require('_helpers/db');
+const XLSX = require('xlsx');
 const Order = db.Order;
 
 router.post('/create', create);
 router.get('/list', getAll);
+router.get('/export', exportXlsx);
 // 生成最新订单号
 router.get('/getNewOrderCode', getNewOrderCode);
 router.put('/:id', update);
@@ -22,6 +24,9 @@ router.post('/updateRecipient/:id', updateRecipient);
 router.get('/rank/money', getRankMoney);
 
 router.get('/rank/count', getRankCount);
+
+
+
 module.exports = router;
 
 async function genNewOrderCode(params) {
@@ -286,4 +291,74 @@ async function getRankCount(req, res, next){
         }
     }).sort((a, b) => a.recipientCount - b.recipientCount);
     res.success(result)
+}
+
+async function exportXlsx(req, res, next) {
+    const queryParams = {
+        ...req.query
+    }
+
+    // 创建时间筛选
+    if(req.query.startDate){
+        queryParams.createdDate = Object.assign(queryParams.createdDate || {}, {
+            $gte: req.query.startDate || null,
+        });
+        delete queryParams.startDate;
+    } 
+    if(req.query.endDate){
+        queryParams.createdDate = Object.assign(queryParams.createdDate || {}, {
+            $gte: req.query.endDate || null,
+        });
+        delete queryParams.endDate;
+    } 
+
+    // 完成时间筛选
+    if(req.query.completeStartDate){
+        queryParams.completeDate = Object.assign(queryParams.completeDate || {}, {
+            $gte: req.query.completeStartDate || null,
+        });
+        delete queryParams.completeStartDate;
+    } 
+
+    if(req.query.completeEndDate){
+        queryParams.completeDate = Object.assign(queryParams.completeDate || {}, {
+            $gte: req.query.completeEndDate || null,
+        });
+        delete queryParams.completeEndDate;
+    }
+    const orders = await orderService.getAll(queryParams);
+    const labelMaps = {
+        orderCode: '订单编号',
+        title: '标题',
+        registrationDate: '登记日期',
+        customer: '客户名称',
+        country: '办理国家',
+        type: '办理类型',
+        orderMoney: '签单金额',
+        receivedMoney: '到账金额',
+        creator: '咨询老师',
+        status: '办理状态',
+        recipient: '办理人',
+        operateMoney: '操作费',
+        // registrationDate: '登记月份',
+        comment: '备注',
+    }
+    const list = Object.keys(labelMaps);
+
+    const ws_data =[];
+    ws_data.push(list.map(item => labelMaps[item]));
+    orders.forEach(order => {
+        ws_data.push(list.map(item => {
+            return order[item];
+        }));
+    });
+    const ws = XLSX.utils.aoa_to_sheet(ws_data); 
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '订单');
+    // 将工作簿写入一个buffer（二进制格式）
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+     // 设置响应头为Excel文件类型
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader("Content-Disposition", "attachment; filename=example.xlsx");
+    res.end(excelBuffer)
 }

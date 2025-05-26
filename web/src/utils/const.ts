@@ -10,6 +10,17 @@ export const getStatusText = (status: string) => {
     }
 }
 
+export const statusOptions = [{
+    value: 'TODO',
+    label: '待处理',
+},{
+    value: 'DOING',
+    label: '处理中',
+},{
+    value: 'DONE',
+    label: '已完成'
+}]
+
 export const getContryOptions = () => {
     return [];
 }

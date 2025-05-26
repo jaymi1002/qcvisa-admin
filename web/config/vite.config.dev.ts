@@ -16,7 +16,7 @@ export default mergeConfig(
           target: 'http://localhost',
           changeOrigin: true,
           header: {
-            cookie: 'token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ODFmNWM2MDc5ODRmNzA0N2FiNGFmNWQiLCJpYXQiOjE3NDY5NzI4MTYsImV4cCI6MTc0NzU3NzYxNn0.EWCQQ7PpEN_WvlgxTctome-Wl901mj0ddC34ugzjgpo'
+            cookie: 'token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ODI5YTJmM2M0ODk3MjMxYzI1NmY2ZDUiLCJpYXQiOjE3NDgyNjg5NjgsImV4cCI6MTc0ODg3Mzc2OH0.g4PB2ktYXutCIiRi3NYKRo9CIkAqEp8q80jija9sVQc'
           }
         }
       }
