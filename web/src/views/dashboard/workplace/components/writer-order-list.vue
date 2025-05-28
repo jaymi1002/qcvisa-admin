@@ -9,18 +9,53 @@
       </template>
       <a-space direction="vertical" :size="10" fill>
         <a-row  justify="space-between">
-          <a-radio-group v-model:model-value="type" type="button" @change="typeChange">
-            <a-radio value="TODO">
-                待认领
-            </a-radio>
-            <a-radio value="DOING">
-                我认领的
-            </a-radio>
-            <a-radio value="DONE">
-                已完成
-            </a-radio>
-          </a-radio-group>
+          <a-row align="center">
+            <a-radio-group v-model:model-value="type" type="button" @change="typeChange">
+              <a-radio value="TODO">
+                  待认领
+              </a-radio>
+              <a-radio value="DOING">
+                  我认领的
+              </a-radio>
+              <a-radio value="DONE">
+                  已完成
+              </a-radio>
+            </a-radio-group>
+          </a-row>
+          <a-row align="center">
+            <a-button type="primary" style="margin-left: 12px;" @click="exportOrder">导出</a-button>
+          </a-row>
         </a-row>
+        <a-row align="center">
+              <span>登记日期：</span>
+              <a-range-picker
+                allow-clear
+                v-model="state.registrationValue"
+                value-format="timestamp"
+                @change="onDateChange"
+                style="width: 254px;"
+              />
+            <template v-if="type === 'DOING' || type === 'DONE'">
+              <span style="margin-left: 24px;">认领日期：</span>
+              <a-range-picker
+                allow-clear
+                v-model="state.recipientValue"
+                value-format="timestamp"
+                @change="onDateChange"
+                style="width: 254px;"
+              />
+            </template>
+            <template v-if="type === 'DONE'">
+              <span style="margin-left: 24px;">完成日期：</span>
+              <a-range-picker
+                allow-clear
+                v-model="state.completeValue"
+                value-format="timestamp"
+                @change="onDateChange"
+                style="width: 254px;"
+              />
+            </template>
+          </a-row>
         
         <a-table :data="renderList" :pagination="true" :bordered="false"  size="small" :scroll="{ x: '140%' }">
           <template #columns>
@@ -32,14 +67,14 @@
                 {{ moment(record.registrationDate).format('YYYY-MM-DD') }}
               </template>
             </a-table-column>
-            <a-table-column ellipsis tooltip title="认领日期" data-index="recipientDate" v-if="type ==='DOING'">
-              <template #cell="{ record }">
-                {{ record.recipientDate && moment(record.recipientDate).format('YYYY-MM-DD') }}
-              </template>
-            </a-table-column>
-            <a-table-column ellipsis tooltip title="认领日期" data-index="completeDate" v-if="type ==='DONE'">
+            <a-table-column ellipsis tooltip title="完成日期" data-index="completeDate" v-if="type ==='DONE'">
               <template #cell="{ record }">
                 {{ record.completeDate && moment(record.completeDate).format('YYYY-MM-DD') }}
+              </template>
+            </a-table-column>
+            <a-table-column ellipsis tooltip title="认领日期" data-index="recipientDate" v-if="type ==='DOING' || type === 'DONE'">
+              <template #cell="{ record }">
+                {{ record.recipientDate && moment(record.recipientDate).format('YYYY-MM-DD') }}
               </template>
             </a-table-column>
             <a-table-column ellipsis tooltip title="客户名称" data-index="customer"></a-table-column>
@@ -77,7 +112,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref,computed } from 'vue'
+import { ref,computed, reactive} from 'vue'
 import moment from 'moment';
 import useLoading from '@/hooks/loading'
 import { getOrderList, createOrder, updateOrder, deleteOrder, updateOrderStatus } from '@/api/dashboard'
@@ -99,7 +134,11 @@ const username = computed(() => {
   return userStore.username;
 })
 
-
+const state = reactive({
+  registrationValue: [],
+  recipientValue: [],
+  completeValue: [],
+});
 
 const router = useRouter()
 const route = useRoute()
@@ -112,18 +151,36 @@ const orderView = ref(true);
 const orderRef = ref();
 
 const fetchData = async (contentType: string) => {
+  let params = {...state};
+  if(params.registrationValue && params.registrationValue.length) {
+    const [startDate, endDate] =  params.registrationValue;
+    params = {...params, startDate, endDate: endDate + 86399999};
+    delete params.registrationValue;
+  }
+  if(params.recipientValue && params.recipientValue.length) {
+    const [recipientStartDate, recipientEndDate] =  params.recipientValue;
+    params = {...params, recipientStartDate, recipientEndDate: recipientEndDate + 86399999};
+    delete params.recipientValue;
+  }
+  if(params.completeValue && params.completeValue.length) {
+    const [completeStartDate, completeEndDate] =  params.completeValue;
+    params = {...params, completeStartDate, completeEndDate : completeEndDate + 86399999};
+    delete params.completeValue;
+  }
   try {
     setLoading(true)
     if(contentType === 'TODO') {
       const { data } = await getOrderList({
-        status: 'TODO'
+        status: 'TODO',
+        ...params
       });
       renderList.value = data
     }
     if(contentType === 'DOING') {
       const { data } = await getOrderList({
         status: 'DOING',
-        recipient: userInfo.value.username
+        recipient: userInfo.value.username,
+        ...params
       });
       renderList.value = data
     }
@@ -131,7 +188,8 @@ const fetchData = async (contentType: string) => {
     if(contentType === 'DONE') {
       const { data } = await getOrderList({
         status: 'DONE',
-        recipient: userInfo.value.username
+        recipient: userInfo.value.username,
+        ...params
       });
       renderList.value = data
     }
@@ -143,7 +201,14 @@ const fetchData = async (contentType: string) => {
   }
 }
 const typeChange = (contentType: string) => {
-  fetchData(contentType)
+  fetchData(contentType);
+  if(contentType === 'TODO') {
+    state.recipientValue = [];
+    state.completeValue = [];
+  }
+  if(contentType === 'DOING') {
+    state.completeValue = [];
+  }
 }
 fetchData(type.value);
 
@@ -167,27 +232,37 @@ const done = async (data) => {
   fetchData(type.value);
 }
 
-const remove = (data) => {
-  deleteOrder(data.id).then(() => {
-    fetchData(type.value);
-  });
+const exportOrder = async () => {
+  const contentType = type.value;
+  let api = '/api/order/export';
+  if(contentType === 'TODO') {
+    api += `?status=TODO`;
+  }
+  if(contentType === 'DOING') {
+    api += `?status=DOING&recipient=${userInfo.value.username}`;
+  }
+  if(contentType === 'DONE') {
+    api += `?status=DONE&recipient=${userInfo.value.username}`;
+  }
+  if(state.registrationValue && state.registrationValue.length) {
+    const [startDate, endDate] =  state.registrationValue;
+    api += `&startDate=${startDate}&endDate=${endDate + 86399999}`;
+  }
+
+  if(state.recipientValue && state.recipientValue.length) {
+    const [startDate, endDate] =  state.recipientValue;
+    api += `&recipientStartDate=${startDate}&recipientEndDate=${endDate + 86399999}`;
+  }
+
+  if(state.completeValue && state.completeValue.length) {
+    const [startDate, endDate] =  state.completeValue;
+    api += `&completeStartDate=${startDate}&completeEndDate=${endDate + 86399999}`;
+  }
+  window.open(api);
 }
 
-const create = () => {
-  currentOrderData.value = {};
-  visible.value = true;
-  orderView.value = false;
-}
-
-const handleOk = () => {
-  const formData = orderRef.value.getFormData();
-  createOrder(formData).then(()=> {
-    Message.success('创建成功');
-    fetchData(type.value);
-  });
-}
-const handleOnBeforeOk = () => {
-  return orderRef.value?.validate();
+const onDateChange = () =>{
+  fetchData(type.value);
 }
 </script>
 

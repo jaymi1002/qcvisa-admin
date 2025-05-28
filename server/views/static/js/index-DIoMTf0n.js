@@ -1,1 +1,0 @@
-import{d as o,P as a,u as r,a as s,o as n}from"./index-OpW0-wjz.js";const d=o({__name:"index",setup(c){const e=r(),t=a().params.path;return e.replace({path:t}),(p,_)=>(n(),s("div"))}});export{d as default};

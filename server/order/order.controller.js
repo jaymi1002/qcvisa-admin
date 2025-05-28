@@ -7,6 +7,18 @@ const db = require('_helpers/db');
 const XLSX = require('xlsx');
 const Order = db.Order;
 
+const getStatusText = (status) => {
+    switch(status){
+        case 'TODO':
+            return '待处理';
+        case 'DOING':
+            return '处理中';
+        case 'DONE':
+        default:
+            return '已完成';
+    }
+}
+
 router.post('/create', create);
 router.get('/list', getAll);
 router.get('/export', exportXlsx);
@@ -56,17 +68,32 @@ function getAll(req, res, next) {
 
     // 创建时间筛选
     if(req.query.startDate){
-        queryParams.createdDate = Object.assign(queryParams.createdDate || {}, {
-            $gte: req.query.startDate || null,
+        queryParams.registrationDate = Object.assign(queryParams.registrationDate || {}, {
+            $gte: parseInt(req.query.startDate) || null,
         });
         delete queryParams.startDate;
     } 
     if(req.query.endDate){
-        queryParams.createdDate = Object.assign(queryParams.createdDate || {}, {
-            $gte: req.query.endDate || null,
+        queryParams.registrationDate = Object.assign(queryParams.registrationDate || {}, {
+            $lte: parseInt(req.query.endDate) || null,
         });
         delete queryParams.endDate;
     } 
+
+    // 认领时间筛选
+    if(req.query.recipientStartDate){
+        queryParams.recipientDate = Object.assign(queryParams.recipientDate || {}, {
+            $gte: req.query.recipientStartDate || null,
+        });
+        delete queryParams.recipientStartDate;
+    } 
+
+    if(req.query.recipientEndDate){
+        queryParams.recipientDate = Object.assign(queryParams.recipientDate || {}, {
+            $lte: req.query.recipientEndDate || null,
+        });
+        delete queryParams.recipientEndDate;
+    }
 
     // 完成时间筛选
     if(req.query.completeStartDate){
@@ -78,10 +105,11 @@ function getAll(req, res, next) {
 
     if(req.query.completeEndDate){
         queryParams.completeDate = Object.assign(queryParams.completeDate || {}, {
-            $gte: req.query.completeEndDate || null,
+            $lte: req.query.completeEndDate || null,
         });
         delete queryParams.completeEndDate;
     }
+    console.log(queryParams)
     orderService.getAll(queryParams)
         .then(orders => {
             res.success(orders)
@@ -300,17 +328,32 @@ async function exportXlsx(req, res, next) {
 
     // 创建时间筛选
     if(req.query.startDate){
-        queryParams.createdDate = Object.assign(queryParams.createdDate || {}, {
-            $gte: req.query.startDate || null,
+        queryParams.registrationDate = Object.assign(queryParams.registrationDate || {}, {
+            $gte: parseInt(req.query.startDate) || null,
         });
         delete queryParams.startDate;
     } 
     if(req.query.endDate){
-        queryParams.createdDate = Object.assign(queryParams.createdDate || {}, {
-            $gte: req.query.endDate || null,
+        queryParams.registrationDate = Object.assign(queryParams.registrationDate || {}, {
+            $lte: parseInt(req.query.endDate) || null,
         });
         delete queryParams.endDate;
     } 
+
+    // 认领时间筛选
+    if(req.query.recipientStartDate){
+        queryParams.recipientDate = Object.assign(queryParams.recipientDate || {}, {
+            $gte: req.query.recipientStartDate || null,
+        });
+        delete queryParams.recipientStartDate;
+    } 
+
+    if(req.query.recipientEndDate){
+        queryParams.recipientDate = Object.assign(queryParams.recipientDate || {}, {
+            $lte: req.query.recipientEndDate || null,
+        });
+        delete queryParams.recipientEndDate;
+    }
 
     // 完成时间筛选
     if(req.query.completeStartDate){
@@ -322,10 +365,11 @@ async function exportXlsx(req, res, next) {
 
     if(req.query.completeEndDate){
         queryParams.completeDate = Object.assign(queryParams.completeDate || {}, {
-            $gte: req.query.completeEndDate || null,
+            $lte: req.query.completeEndDate || null,
         });
         delete queryParams.completeEndDate;
     }
+
     const orders = await orderService.getAll(queryParams);
     const labelMaps = {
         orderCode: '订单编号',
@@ -338,9 +382,9 @@ async function exportXlsx(req, res, next) {
         receivedMoney: '到账金额',
         creator: '咨询老师',
         status: '办理状态',
-        recipient: '办理人',
+        recipient: '认领人',
         operateMoney: '操作费',
-        // registrationDate: '登记月份',
+        registrationMonth: '登记月份',
         comment: '备注',
     }
     const list = Object.keys(labelMaps);
@@ -349,6 +393,12 @@ async function exportXlsx(req, res, next) {
     ws_data.push(list.map(item => labelMaps[item]));
     orders.forEach(order => {
         ws_data.push(list.map(item => {
+            if(item === 'registrationMonth') {
+                return moment(order.registrationDate).format('YYYY-MM')
+            }
+            if(item === 'status') {
+                return getStatusText(order[item]);
+            }
             return order[item];
         }));
     });

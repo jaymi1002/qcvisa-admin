@@ -25,6 +25,15 @@
                 {{ item.label }}
               </a-option>
             </a-select>
+
+            <span style="margin-left: 24px;">登记日期：</span>
+            <a-range-picker
+              allow-clear
+              v-model="state.rangeValue"
+              value-format="timestamp"
+              @change="onDateChange"
+              style="width: 254px;"
+            />
           </a-row>
           <a-row align="center">
             <a-button type="primary" @click="create">创建</a-button>
@@ -110,6 +119,7 @@ const username = computed(() => {
 })
 const state = reactive({
   status: '',
+  rangeValue: []
 });
 
 const router = useRouter()
@@ -123,13 +133,20 @@ const orderView = ref(true);
 const orderRef = ref();
 const StatusOptions = ref(statusOptions)
 
-const fetchData = async (contentType: string, params = {}) => {
+const fetchData = async (contentType: string, params:any = {}) => {
+  if(params.rangeValue && params.rangeValue.length) {
+    const [startDate, endDate] =  params.rangeValue;
+    params = {...params, startDate, endDate: endDate + 86399999};
+  }
+  delete params.rangeValue;
+  if(!params.status){
+    delete params.status;
+  }
   try {
     setLoading(true)
     if(contentType === 'ALL') {
       const { data } = await getOrderList(params);
       renderList.value = data
-      console.log(renderList.value)
     }
     if(contentType === 'MY') {
       const { data } = await getOrderList({
@@ -194,11 +211,14 @@ const handleOnBeforeOk = async () => {
 }
 
 const statusChange = () => {
-  fetchData(type.value, state.status ? state : undefined)
+  fetchData(type.value, state)
+}
+
+const onDateChange = (dateString: string, date: any[]) => {
+  fetchData(type.value, state);
 }
 const exportOrder = async () => {
   const contentType = type.value;
-  const params = state.status ? state : {};
   let api = '/api/order/export';
   if(contentType === 'ALL' && state.status) {
     api += `?status=${state.status}`;
@@ -208,6 +228,10 @@ const exportOrder = async () => {
     if(state.status){
       api += `&status=${state.status}`;
     }
+  }
+  if(state.rangeValue && state.rangeValue.length) {
+    const [startDate, endDate] =  state.rangeValue;
+    api += `&startDate=${startDate}&endDate=${endDate + 86399999}`;
   }
   window.open(api);
 }

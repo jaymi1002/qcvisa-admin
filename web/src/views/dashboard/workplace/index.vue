@@ -8,8 +8,8 @@
       </div>
       <a-grid :cols="24" :col-gap="16" :row-gap="16" style="margin-top: 16px">
         <a-grid-item :span="24">
-          <SalerOrderList v-if ="role === 'saler' || role === 'admin'"/>
-          <WriterOrderList v-if ="role === 'writer' || role === 'admin'" />
+          <SalerOrderList v-if ="role === 'saler' || role === 'admin' || role === 'leader'"/>
+          <WriterOrderList v-if ="role === 'writer' || role === 'admin' || role === 'leader'" />
         </a-grid-item>
       </a-grid>
     </div>
