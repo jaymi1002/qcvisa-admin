@@ -3,9 +3,11 @@ const router = express.Router();
 const orderService = require('./order.service');
 const userService = require('../user/user.service');
 const moment = require('moment');
+const multer = require('multer');
 const db = require('_helpers/db');
 const XLSX = require('xlsx');
 const Order = db.Order;
+const upload = multer({ dest: './uploads/'});
 
 const getStatusText = (status) => {
     switch(status){
@@ -22,6 +24,7 @@ const getStatusText = (status) => {
 router.post('/create', create);
 router.get('/list', getAll);
 router.get('/export', exportXlsx);
+router.post('/import', upload.single('excel'),importXlsx);
 // 生成最新订单号
 router.get('/getNewOrderCode', getNewOrderCode);
 router.put('/:id', update);
@@ -109,7 +112,17 @@ function getAll(req, res, next) {
         });
         delete queryParams.completeEndDate;
     }
-    console.log(queryParams)
+
+    if(req.query.keyword){
+        queryParams.$or = [{
+            title: { $regex: eval(`/${req.query.keyword}/g`)}
+        }, {
+            customer:  { $regex: eval(`/${req.query.keyword}/g`)}
+        }, {
+            orderCode: { $regex: eval(`/${req.query.keyword}/g`)}
+        }]
+        delete queryParams.keyword;
+    }
     orderService.getAll(queryParams)
         .then(orders => {
             res.success(orders)
@@ -125,7 +138,6 @@ function getById(req, res, next) {
 
 function getNewOrderCode(req, res, next) {
     genNewOrderCode().then(orderCode => {
-        console.log(orderCode)
         res.success(orderCode)
     })
     .catch(err => next(err));
@@ -370,6 +382,17 @@ async function exportXlsx(req, res, next) {
         delete queryParams.completeEndDate;
     }
 
+    if(req.query.keyword){
+        queryParams.$or = [{
+            title: { $regex: eval(`/${req.query.keyword}/g`)}
+        }, {
+            customer:  { $regex: eval(`/${req.query.keyword}/g`)}
+        }, {
+            orderCode: { $regex: eval(`/${req.query.keyword}/g`)}
+        }]
+        delete queryParams.keyword;
+    }
+
     const orders = await orderService.getAll(queryParams);
     const labelMaps = {
         orderCode: '订单编号',
@@ -411,4 +434,47 @@ async function exportXlsx(req, res, next) {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader("Content-Disposition", "attachment; filename=example.xlsx");
     res.end(excelBuffer)
+}
+
+async function importXlsx(req, res, next) {
+    try {
+        const workbook = XLSX.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        const labelMaps = {
+            '[标题]': 'title',
+            '标题': 'title',
+            '订单编号':'orderCode',
+            '登记日期': 'registrationDate',
+            '客户名称': 'customer',
+            '办理国家': 'country',
+            '办理类型': 'type',
+            '签单金额': 'orderMoney',
+            '到账金额': 'receivedMoney',
+            '咨询老师': 'creator',
+            '办理状态': 'status',
+            '文案老师': 'recipient',
+            '操作费': 'operateMoney',
+            '备注': 'comment',
+        }
+        const orderList = jsonData.map(item => {
+            const order = {};
+            Object.keys(item).forEach(key => {
+                if(key === '办理状态') {
+                    const status = item[key] === '未办理' ? 'TODO' : 
+                    (item[key] === '正在办理' ? 'DOING' : 'DONE');
+                    order[labelMaps[key]] = status;
+                }else {
+                    labelMaps[key] && (order[labelMaps[key]] = item[key]);
+                }
+            });
+            return order;
+        })
+        await orderService.createBatch(orderList);
+        // 此处可添加数据库存储逻辑
+        res.success(orderList)
+      } catch (err) {
+        console.log(err);
+        next(err)
+      }
 }

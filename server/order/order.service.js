@@ -10,7 +10,8 @@ module.exports = {
     update,
     getCount,
     delete: _delete,
-    getById
+    getById,
+    createBatch
 };
 
 async function getAll(queryParams) {
@@ -50,4 +51,8 @@ async function update(id, orderParam) {
 
 async function _delete(id) {
     await Order.findByIdAndRemove(id);
+}
+
+async function createBatch(orderParam) {
+    await Order.insertMany(orderParam);
 }

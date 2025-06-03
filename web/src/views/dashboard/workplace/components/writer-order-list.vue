@@ -27,35 +27,38 @@
           </a-row>
         </a-row>
         <a-row align="center">
-              <span>登记日期：</span>
-              <a-range-picker
-                allow-clear
-                v-model="state.registrationValue"
-                value-format="timestamp"
-                @change="onDateChange"
-                style="width: 254px;"
-              />
-            <template v-if="type === 'DOING' || type === 'DONE'">
-              <span style="margin-left: 24px;">认领日期：</span>
-              <a-range-picker
-                allow-clear
-                v-model="state.recipientValue"
-                value-format="timestamp"
-                @change="onDateChange"
-                style="width: 254px;"
-              />
-            </template>
-            <template v-if="type === 'DONE'">
-              <span style="margin-left: 24px;">完成日期：</span>
-              <a-range-picker
-                allow-clear
-                v-model="state.completeValue"
-                value-format="timestamp"
-                @change="onDateChange"
-                style="width: 254px;"
-              />
-            </template>
-          </a-row>
+          <span>关键字搜索：</span>
+          <a-input style="width: 250px" placeholder="支持标题、客户、订单编码搜索" v-model="state.keyword"></a-input>
+          <span style="margin-left: 24px;">登记日期：</span>
+          <a-range-picker
+            allow-clear
+            v-model="state.registrationValue"
+            value-format="timestamp"
+            @change="onDateChange"
+            style="width: 254px;"
+          />
+          <template v-if="type === 'DOING' || type === 'DONE'">
+            <span style="margin-left: 24px;">认领日期：</span>
+            <a-range-picker
+              allow-clear
+              v-model="state.recipientValue"
+              value-format="timestamp"
+              @change="onDateChange"
+              style="width: 254px;"
+            />
+          </template>
+          <template v-if="type === 'DONE'">
+            <span style="margin-left: 24px;">完成日期：</span>
+            <a-range-picker
+              allow-clear
+              v-model="state.completeValue"
+              value-format="timestamp"
+              @change="onDateChange"
+              style="width: 254px;"
+            />
+          </template>
+          <a-button style="margin-left: 24px;" type="primary" @click="fetchData">搜索</a-button>
+        </a-row>
         
         <a-table :data="renderList" :pagination="true" :bordered="false"  size="small" :scroll="{ x: '140%' }">
           <template #columns>
@@ -138,6 +141,7 @@ const state = reactive({
   registrationValue: [],
   recipientValue: [],
   completeValue: [],
+  keyword:''
 });
 
 const router = useRouter()
@@ -150,7 +154,8 @@ const visible = ref(false);
 const orderView = ref(true);
 const orderRef = ref();
 
-const fetchData = async (contentType: string) => {
+const fetchData = async () => {
+  const contentType = type.value;
   let params = {...state};
   if(params.registrationValue && params.registrationValue.length) {
     const [startDate, endDate] =  params.registrationValue;
@@ -166,6 +171,9 @@ const fetchData = async (contentType: string) => {
     const [completeStartDate, completeEndDate] =  params.completeValue;
     params = {...params, completeStartDate, completeEndDate : completeEndDate + 86399999};
     delete params.completeValue;
+  }
+  if(!params.keyword){
+    delete params.keyword
   }
   try {
     setLoading(true)
@@ -201,7 +209,7 @@ const fetchData = async (contentType: string) => {
   }
 }
 const typeChange = (contentType: string) => {
-  fetchData(contentType);
+  fetchData();
   if(contentType === 'TODO') {
     state.recipientValue = [];
     state.completeValue = [];
@@ -210,7 +218,7 @@ const typeChange = (contentType: string) => {
     state.completeValue = [];
   }
 }
-fetchData(type.value);
+fetchData();
 
 const review = (data) => {
   router.push( {
@@ -224,12 +232,12 @@ const review = (data) => {
 }
 const doIt = async (data) => {
   await updateOrderStatus(data.id, { status: 'DOING'});
-  fetchData(type.value);
+  fetchData();
 }
 
 const done = async (data) => {
   await updateOrderStatus(data.id, { status: 'DONE'});
-  fetchData(type.value);
+  fetchData();
 }
 
 const exportOrder = async () => {
@@ -258,11 +266,15 @@ const exportOrder = async () => {
     const [startDate, endDate] =  state.completeValue;
     api += `&completeStartDate=${startDate}&completeEndDate=${endDate + 86399999}`;
   }
+  if(state.keyword) {
+    const { keyword } = state;
+    api += `&keyword=${keyword}`;
+  }
   window.open(api);
 }
 
 const onDateChange = () =>{
-  fetchData(type.value);
+  fetchData();
 }
 </script>
 

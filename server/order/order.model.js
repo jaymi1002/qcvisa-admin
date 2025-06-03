@@ -3,12 +3,12 @@ const moment = require('moment');
 const Schema = mongoose.Schema;
 
 const schema = new Schema({
-    title: { type: String, required: true },
+    title: { type: String, required: true},
     // orderCode: { type: String, default() {
     //     var customId = moment().format('YYYY-MM-DD-HHmmss') + Math.floor(Math.random() * 10);
     //     return 'DJ-' + customId;
     // } },
-    orderCode: { type: String, required: true},
+    orderCode: { type: String, required: true, unique: true},
     creator: {type: String, required: true}, // 提交人 咨询老师
     recipient: {type: String, default: ''}, // 跟进人
     customer:  { type: String, required: true }, // 客户

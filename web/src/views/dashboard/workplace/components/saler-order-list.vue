@@ -18,8 +18,17 @@
                   我创建的
               </a-radio>
             </a-radio-group>
-
-            <span style="margin-left: 24px;">处理状态：</span>
+          </a-row>
+          <a-row align="center">
+            <a-button type="primary" @click="create">创建</a-button>
+            <a-button style="margin-left: 12px;" @click="exportOrder">导出</a-button>
+            <a-button style="margin-left: 12px;" @click="importOrder">导入</a-button>
+          </a-row>
+        </a-row>
+        <a-row align="center">
+          <span>关键字搜索：</span>
+          <a-input style="width: 250px" placeholder="支持标题、客户、订单编码搜索" v-model="state.keyword"></a-input>
+          <span style="margin-left: 24px;">处理状态：</span>
             <a-select  placeholder="全部" v-model="state.status" style="width: 100px; " allow-clear @change="statusChange">
               <a-option v-for="item in StatusOptions"  :key="item.value" :value="item.value">
                 {{ item.label }}
@@ -34,16 +43,12 @@
               @change="onDateChange"
               style="width: 254px;"
             />
-          </a-row>
-          <a-row align="center">
-            <a-button type="primary" @click="create">创建</a-button>
-            <a-button style="margin-left: 12px;" @click="exportOrder">导出</a-button>
-          </a-row>
+            <a-button style="margin-left: 24px;" type="primary" @click="search">搜索</a-button>
         </a-row>
         
         <a-table :data="renderList" :pagination="true" :bordered="false"  size="small" :scroll="{ x: '140%' }">
           <template #columns>
-            <a-table-column ellipsis tooltip fixed="left" title="订单编号" data-index="orderCode">
+            <a-table-column ellipsis tooltip fixed="left" width="210" title="订单编号" data-index="orderCode">
             </a-table-column>
             <a-table-column ellipsis tooltip title="标题" data-index="title"></a-table-column>
             <a-table-column ellipsis tooltip title="登记日期" data-index="registrationDate">
@@ -76,7 +81,7 @@
                 <a-space>
                   <a-button type="text" @click="review(record)">查看</a-button>
                   <a-button :disabled="username !== record.creator" type="text" @click="edit(record)">编辑</a-button>
-                  <a-button :disabled="username !== record.creator" type="text" status="danger" @click="remove(record)" >删除</a-button>
+                  <a-button :disabled="username !== record.creator && userStore.role !== 'admin'" type="text" status="danger" @click="remove(record)" >删除</a-button>
                 </a-space>
               </template>
             </a-table-column>
@@ -90,6 +95,16 @@
       创建订单
     </template>
     <Order v-if="visible" ref="orderRef" :isView="false" scene="create"></Order>
+  </a-modal>
+
+  <a-modal v-model:visible="importVisible" width="1000px" @ok="fetchData" @cancel="fetchData">
+    <template #title>
+      导入订单
+    </template>
+    <a-row justify="center">
+        <a-upload v-if="importVisible" action="/api/order/import"  name="excel" />
+    </a-row>
+    
   </a-modal>
 </template>
 
@@ -119,7 +134,8 @@ const username = computed(() => {
 })
 const state = reactive({
   status: '',
-  rangeValue: []
+  rangeValue: [],
+  keyword: ''
 });
 
 const router = useRouter()
@@ -132,8 +148,11 @@ const visible = ref(false);
 const orderView = ref(true);
 const orderRef = ref();
 const StatusOptions = ref(statusOptions)
+const importVisible = ref(false);
 
-const fetchData = async (contentType: string, params:any = {}) => {
+const fetchData = async () => {
+  const contentType = type.value;
+  let params = {...state};
   if(params.rangeValue && params.rangeValue.length) {
     const [startDate, endDate] =  params.rangeValue;
     params = {...params, startDate, endDate: endDate + 86399999};
@@ -141,6 +160,9 @@ const fetchData = async (contentType: string, params:any = {}) => {
   delete params.rangeValue;
   if(!params.status){
     delete params.status;
+  }
+  if(!params.keyword){
+    delete params.keyword
   }
   try {
     setLoading(true)
@@ -162,10 +184,14 @@ const fetchData = async (contentType: string, params:any = {}) => {
     setLoading(false)
   }
 }
-const typeChange = (contentType: string) => {
-  fetchData(contentType)
+const typeChange = () => {
+  fetchData()
 }
-fetchData(type.value);
+fetchData();
+
+const search = () => {
+  fetchData();
+}
 
 const review = (data) => {
   router.push( {
@@ -188,7 +214,7 @@ const edit = (data) => {
 
 const remove = (data) => {
   deleteOrder(data.id).then(() => {
-    fetchData(type.value);
+    fetchData();
   });
 }
 
@@ -202,7 +228,7 @@ const handleOk = () => {
   const formData = orderRef.value.getFormData();
   createOrder(formData).then(()=> {
     Message.success('创建成功');
-    fetchData(type.value);
+    fetchData();
   });
 }
 const handleOnBeforeOk = async () => {
@@ -211,11 +237,11 @@ const handleOnBeforeOk = async () => {
 }
 
 const statusChange = () => {
-  fetchData(type.value, state)
+  fetchData();
 }
 
 const onDateChange = (dateString: string, date: any[]) => {
-  fetchData(type.value, state);
+  fetchData();
 }
 const exportOrder = async () => {
   const contentType = type.value;
@@ -233,7 +259,15 @@ const exportOrder = async () => {
     const [startDate, endDate] =  state.rangeValue;
     api += `&startDate=${startDate}&endDate=${endDate + 86399999}`;
   }
+  if(state.keyword) {
+    const { keyword } = state;
+    api += `&keyword=${keyword}`;
+  }
   window.open(api);
+}
+
+const importOrder = () => {
+  importVisible.value = true;
 }
 </script>
 
