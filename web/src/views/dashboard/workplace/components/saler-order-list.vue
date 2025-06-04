@@ -46,7 +46,7 @@
             <a-button style="margin-left: 24px;" type="primary" @click="search">搜索</a-button>
         </a-row>
         
-        <a-table :data="renderList" :pagination="true" :bordered="false"  size="small" :scroll="{ x: '140%' }">
+        <a-table stripe :data="renderList" :pagination="{'show-jumper': true, 'show-total':true, 'show-page-size': true}"  :bordered="false"  size="small" :scroll="{ x: '140%' }">
           <template #columns>
             <a-table-column ellipsis tooltip fixed="left" width="210" title="订单编号" data-index="orderCode">
             </a-table-column>
@@ -67,7 +67,7 @@
                 {{ getStatusText(record.status) }}
               </template>
             </a-table-column>
-            <a-table-column ellipsis tooltip title="办理人" data-index="recipient">
+            <a-table-column ellipsis tooltip title="文案老师" data-index="recipient">
             </a-table-column>
             <a-table-column ellipsis tooltip title="操作费" data-index="operateMoney"></a-table-column>
             <a-table-column ellipsis tooltip title="登记月份" data-index="registrationDate">
@@ -80,8 +80,10 @@
               <template #cell="{ record }">
                 <a-space>
                   <a-button type="text" @click="review(record)">查看</a-button>
-                  <a-button :disabled="username !== record.creator" type="text" @click="edit(record)">编辑</a-button>
-                  <a-button :disabled="username !== record.creator && userStore.role !== 'admin'" type="text" status="danger" @click="remove(record)" >删除</a-button>
+                  <a-button :disabled="username !== record.creator  && userStore.role !== 'admin'" type="text" @click="edit(record)">编辑</a-button>
+                  <a-popconfirm content="确定要删除吗？" @ok="remove(record)">
+                    <a-button :disabled="username !== record.creator && userStore.role !== 'admin'" type="text" status="danger">删除</a-button>
+                  </a-popconfirm>
                 </a-space>
               </template>
             </a-table-column>
@@ -133,7 +135,7 @@ const username = computed(() => {
   return userStore.username;
 })
 const state = reactive({
-  status: '',
+  status: 'DOING',
   rangeValue: [],
   keyword: ''
 });

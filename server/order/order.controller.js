@@ -405,7 +405,7 @@ async function exportXlsx(req, res, next) {
         receivedMoney: '到账金额',
         creator: '咨询老师',
         status: '办理状态',
-        recipient: '认领人',
+        recipient: '文案老师',
         operateMoney: '操作费',
         registrationMonth: '登记月份',
         comment: '备注',
@@ -418,6 +418,9 @@ async function exportXlsx(req, res, next) {
         ws_data.push(list.map(item => {
             if(item === 'registrationMonth') {
                 return moment(order.registrationDate).format('YYYY-MM')
+            }
+            if(item === 'registrationDate') {
+                return moment(order.registrationDate).format('YYYY/MM/DD')
             }
             if(item === 'status') {
                 return getStatusText(order[item]);
@@ -461,8 +464,8 @@ async function importXlsx(req, res, next) {
             const order = {};
             Object.keys(item).forEach(key => {
                 if(key === '办理状态') {
-                    const status = item[key] === '未办理' ? 'TODO' : 
-                    (item[key] === '正在办理' ? 'DOING' : 'DONE');
+                    const status = item[key] === '未办理' || item[key] === '待处理' ? 'TODO' : 
+                    (item[key] === '正在办理' || item[key] === '处理中' ? 'DOING' : 'DONE');
                     order[labelMaps[key]] = status;
                 }else {
                     labelMaps[key] && (order[labelMaps[key]] = item[key]);

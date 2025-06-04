@@ -60,7 +60,7 @@
           <a-button style="margin-left: 24px;" type="primary" @click="fetchData">搜索</a-button>
         </a-row>
         
-        <a-table :data="renderList" :pagination="true" :bordered="false"  size="small" :scroll="{ x: '140%' }">
+        <a-table stripe :pagination="{'show-jumper': true, 'show-total':true, 'show-page-size': true}" :data="renderList" :bordered="false"  size="small" :scroll="{ x: '140%' }">
           <template #columns>
             <a-table-column ellipsis tooltip fixed="left" title="订单编号" data-index="orderCode">
             </a-table-column>
@@ -102,8 +102,13 @@
               <template #cell="{ record }">
                 <a-space>
                   <a-button type="text" @click="review(record)">查看</a-button>
-                  <a-button v-if="record.status === 'TODO'" type="text" status="danger" @click="doIt(record)" >认领</a-button>
-                  <a-button v-if="record.status === 'DOING'" type="text" status="danger" @click="done(record)" >完成</a-button>
+                  <a-popconfirm v-if="record.status === 'TODO'" content="确定要认领此单吗？" @ok="doIt(record)">
+                    <a-button type="text" status="primary">认领</a-button>
+                  </a-popconfirm>
+                  
+                  <a-popconfirm v-if="record.status === 'DOING'" content="确定要完成此单吗？" @ok="done(record)">
+                    <a-button type="text" status="primary">完成</a-button>
+                  </a-popconfirm>
                 </a-space>
               </template>
             </a-table-column>

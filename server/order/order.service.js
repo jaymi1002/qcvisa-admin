@@ -15,7 +15,7 @@ module.exports = {
 };
 
 async function getAll(queryParams) {
-    return await Order.find(queryParams);
+    return await Order.find(queryParams).sort({ registrationDate: -1, orderCode: 1 });
 }
 
 async function getCount(queryParams) {
