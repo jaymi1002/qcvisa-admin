@@ -150,7 +150,7 @@ function update(req, res, next) {
 }
 
 function _delete(req, res, next) {
-    orderService.delete(req.params.id)
+    orderService.update(req.params.id, {deleted: true})
         .then(() => res.success())
         .catch(err => next(err));
 }

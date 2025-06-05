@@ -22,7 +22,8 @@ const schema = new Schema({
     recipientDate:  { type: Date, default: null }, // 认领时间
     createdDate: { type: Date, default: Date.now }, // 创建时间戳
     comment: {type: String, default:''}, // 备注
-    operateMoney: {type: String, default: 0} // 操作费
+    operateMoney: {type: String, default: 0}, // 操作费
+    deleted: {type: Boolean, default: false} //是否删除
 });
 
 schema.set('toJSON', {
