@@ -162,11 +162,19 @@ async function updateStatus(req, res, next) {
     const params = {
         status
     };
+    // 跟进
     if(status === 'DOING') {
         params.recipient = user.username;
         params.recipientDate = recipientDate || Date.now();
     }
+    // 撤销
 
+    if(status === 'TODO') {
+        params.recipient = '';
+        params.recipientDate = null;
+        params.completeDate  = null;
+    }
+    // 完成
     if(status === 'DONE') {
         params.completeDate = completeDate || Date.now();
     }
@@ -195,7 +203,8 @@ async function updateRecipient(req, res, next) {
 
 async function getRankMoney(req, res, next){
     const queryParams = {
-        ...req.query
+        ...req.query,
+        deleted: {$ne: true}
     }
     // 创建时间筛选
     if(req.query.date){
@@ -216,7 +225,8 @@ async function getRankMoney(req, res, next){
                 creator : 1 ,
                 orderMoney: 1,
                 receivedMoney: 1,
-                registrationDate: 1
+                registrationDate: 1,
+                deleted: 1,
             }
         },
         {
@@ -225,7 +235,7 @@ async function getRankMoney(req, res, next){
             }
         },
         { $group: { _id: '$creator', orderMoney: {$sum: '$orderMoney'}, receivedMoney: { $sum: '$receivedMoney' } }},
-        { $sort:  { receivedMoney: 1 }}
+        { $sort:  { receivedMoney: -1 }}
     ]).then(rankList => {
         res.success(rankList)
     })
@@ -234,7 +244,9 @@ async function getRankMoney(req, res, next){
 
 
 async function getCompletedCount(date) {
-    const queryParams = {}
+    const queryParams = {
+        deleted: {$ne: true}
+    }
     // 创建时间筛选
     if(date){
         const startDate = +date;
@@ -253,6 +265,7 @@ async function getCompletedCount(date) {
                 status: 1,
                 recipient: 1,
                 completeDate: 1,
+                deleted: 1,
             }
         },
         {
@@ -270,7 +283,9 @@ async function getCompletedCount(date) {
 }
 
 async function getRecipientCount(date) {
-    const queryParams = {}
+    const queryParams = {
+        deleted: {$ne: true}
+    }
     // 创建时间筛选
     if(date){
         const startDate = +date;
@@ -289,16 +304,16 @@ async function getRecipientCount(date) {
                 status: 1,
                 recipient: 1,
                 recipientDate: 1,
+                deleted: 1,
             }
         },
         {
             $match : {
                 ...queryParams,
-                status: 'DONE'
             }
         },
         { $group: { _id: '$recipient', recipientCount: { $sum: 1} }},
-        { $sort:  { recipientCount: 1 }}
+        { $sort:  { recipientCount: -1 }}
     ]).then(rankList => {
         return rankList;
         
@@ -329,7 +344,7 @@ async function getRankCount(req, res, next){
             completedCount,
             recipientCount
         }
-    }).sort((a, b) => a.recipientCount - b.recipientCount);
+    }).sort((a, b) => b.recipientCount - a.recipientCount);
     res.success(result)
 }
 

@@ -98,7 +98,7 @@
               </template>
             </a-table-column>
             <a-table-column ellipsis tooltip title="备注" data-index="comment"></a-table-column>
-            <a-table-column title="操作" width="220" fixed="right" data-index="operator">
+            <a-table-column title="操作" width="240" fixed="right" data-index="operator">
               <template #cell="{ record }">
                 <a-space>
                   <a-button type="text" @click="review(record)">查看</a-button>
@@ -106,6 +106,9 @@
                     <a-button type="text" status="primary">认领</a-button>
                   </a-popconfirm>
                   
+                  <a-popconfirm v-if="record.status === 'DOING'" content="确定要撤销吗？" @ok="cancel(record)">
+                    <a-button type="text">撤销认领</a-button>
+                  </a-popconfirm>
                   <a-popconfirm v-if="record.status === 'DOING'" content="确定要完成此单吗？" @ok="done(record)">
                     <a-button type="text" status="primary">完成</a-button>
                   </a-popconfirm>
@@ -242,6 +245,11 @@ const doIt = async (data) => {
 
 const done = async (data) => {
   await updateOrderStatus(data.id, { status: 'DONE'});
+  fetchData();
+}
+
+const cancel = async (data) => {
+  await updateOrderStatus(data.id, { status: 'TODO'});
   fetchData();
 }
 
